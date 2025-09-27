@@ -15,6 +15,7 @@ import json
 from django.views.decorators.csrf import csrf_exempt
 from .populate import initiate
 import requests
+from .models import CarMake, CarModel
 
 
 # Get an instance of a logger
@@ -114,18 +115,17 @@ def get_dealer_reviews(request, dealer_id):
         return JsonResponse({"status": 200, "reviews": data})
     except:
         return JsonResponse({"status": 500, "error": "Failed to fetch data"})
-        
 
 def get_cars(request):
-    car_models = CarModel.objects.select_related('CarMake').all()
+    count = CarMake.objects.filter().count()
+    print(count)
+    if(count == 0):
+        initiate()
+    car_models = CarModel.objects.select_related('car_make')
     cars = []
-    for model in car_models:
-        cars.append({
-            "CarMake": model.CarMake.name,
-            "CarModel": model.name
-        })
-    # The key here, "CarModels", MUST match what the frontend expects
-    return JsonResponse({"CarModels": cars})
+    for car_model in car_models:
+        cars.append({"CarModel": car_model.name, "CarMake": car_model.car_make.name})
+    return JsonResponse({"CarModels":cars})
 
 
 # Create a `add_review` view to submit a review
