@@ -16,6 +16,7 @@ from django.views.decorators.csrf import csrf_exempt
 from .populate import initiate
 import requests
 from .models import CarMake, CarModel
+from .restapis import get_request, analyze_review_sentiments, post_review
 
 
 # Get an instance of a logger
@@ -96,22 +97,28 @@ def get_dealer_details(request, dealer_id):
     if(dealer_id):
         endpoint = "/fetchDealer/"+str(dealer_id)
         dealership = get_request(endpoint)
-        return JsonResponse({"status":200,"dealer":dealership})
+        return JsonResponse({"status":200, "dealer": [dealership]})
     else:
         return JsonResponse({"status":400,"message":"Bad Request"})
 
-# Create the `get_dealer_reviews` view to use the get_request method
 def get_dealer_reviews(request, dealer_id):
     if(dealer_id):
         endpoint = "/fetchReviews/dealer/"+str(dealer_id)
         reviews = get_request(endpoint)
-        # Analyze the sentiment for each review
         for review_detail in reviews:
+            # Call the sentiment analyzer
             response = analyze_review_sentiments(review_detail['review'])
-            review_detail['sentiment'] = response['sentiment']
-        return JsonResponse({"status":200,"reviews":reviews})
+            
+            # ✅ Add this check to handle cases where the analyzer fails
+            if response and response.get('sentiment'):
+                review_detail['sentiment'] = response['sentiment']
+            else:
+                # Set a default sentiment if the analyzer fails
+                review_detail['sentiment'] = "neutral"
+                
+        return JsonResponse({"status":200, "reviews": reviews})
     else:
-        return JsonResponse({"status":400,"message":"Bad Request"})
+        return JsonResponse({"status":400, "message":"Bad Request"})
 
 def get_cars(request):
     count = CarMake.objects.filter().count()

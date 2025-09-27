@@ -19,3 +19,11 @@ urlpatterns = [
     path(route='get_cars', view=views.get_cars, name ='getcars'),
     path(route='add_review', view=views.add_review, name='add_review'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+def get_dealer_details(request, dealer_id):
+    if(dealer_id):
+        endpoint = "/fetchDealer/"+str(dealer_id)
+        dealership = get_request(endpoint)
+        # ✅ The fix is to wrap the 'dealership' object in a list/array -> [dealership]
+        return JsonResponse({"status":200, "dealer": [dealership]})
+    else:
+        return JsonResponse({"status":400,"message":"Bad Request"})
