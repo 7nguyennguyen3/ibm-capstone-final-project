@@ -13,7 +13,8 @@ from django.contrib.auth import login, authenticate
 import logging
 import json
 from django.views.decorators.csrf import csrf_exempt
-# from .populate import initiate
+from .populate import initiate
+import requests
 
 
 # Get an instance of a logger
@@ -81,16 +82,51 @@ def registration(request):
 
 # # Update the `get_dealerships` view to render the index page with
 # a list of dealerships
-# def get_dealerships(request):
-# ...
+def get_dealerships(request, state="All"):
+    if (state == "All"):
+        url = "http://localhost:3030/fetchDealers"
+    else:
+        url = f"http://localhost:3030/fetchDealers/{state}"
+    
+    try:
+        response = requests.get(url)
+        data = response.json()
+        return JsonResponse({"status": 200, "dealers": data})
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error fetching dealerships: {e}")
+        return JsonResponse({"status": 500, "error": "Failed to fetch data"})
 
-# Create a `get_dealer_reviews` view to render the reviews of a dealer
-# def get_dealer_reviews(request,dealer_id):
-# ...
+def get_dealer_details(request, dealer_id):
+    url = f"http://localhost:3030/fetchDealer/{dealer_id}"
+    try:
+        response = requests.get(url)
+        data = response.json()
+        # The fix is to wrap the 'data' object in a list/array -> [data]
+        return JsonResponse({"status": 200, "dealer": [data]})
+    except:
+        return JsonResponse({"status": 500, "error": "Failed to fetch data"})
 
-# Create a `get_dealer_details` view to render the dealer details
-# def get_dealer_details(request, dealer_id):
-# ...
+def get_dealer_reviews(request, dealer_id):
+    url = f"http://localhost:3030/fetchReviews/dealer/{dealer_id}"
+    try:
+        response = requests.get(url)
+        data = response.json()
+        return JsonResponse({"status": 200, "reviews": data})
+    except:
+        return JsonResponse({"status": 500, "error": "Failed to fetch data"})
+        
+
+def get_cars(request):
+    car_models = CarModel.objects.select_related('CarMake').all()
+    cars = []
+    for model in car_models:
+        cars.append({
+            "CarMake": model.CarMake.name,
+            "CarModel": model.name
+        })
+    # The key here, "CarModels", MUST match what the frontend expects
+    return JsonResponse({"CarModels": cars})
+
 
 # Create a `add_review` view to submit a review
 # def add_review(request):
